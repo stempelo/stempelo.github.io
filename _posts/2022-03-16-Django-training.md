@@ -1,6 +1,7 @@
 ---
 layout: post
-title:  "Django training"
+title:  'Django training'
+date: '2022-03-16'
 ---
 
 # Introduction

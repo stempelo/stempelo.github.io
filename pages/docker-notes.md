@@ -1,8 +1,6 @@
 ---
-layout: post
-title:  'Docker training'
-date: '2022-03-21'
-permalink: '/Docker'
+title:  'Docker notes'
+permalink: '/pages/Docker.html'
 ---
 # CLI snippets
 

@@ -200,26 +200,19 @@ When you exit the content vanish. It's not permanent
 - caching with each step
   - docker skips lines that have not changed since the last build
     - watch "using cache" on the output
-### Basic dockerfile
+### Basic Dockerfile
     FROM busibox
     RUN echo "building super simple docker image"
     CMD echo "Hi container"
 Save in file named: Dockerfile
 Build the image:
     docker build -t first_image .
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### Basic Dockerfile example 2
+Installing a program
+    FROM debian:sid
+    RUN apt-get -y update
+    RUN apt-get -y install nano
+    CMD ["/bin/nano", "/tmp/notes"]
+### Basic Dockerfile example 3
+Adding a file
+Start from image create in example 2

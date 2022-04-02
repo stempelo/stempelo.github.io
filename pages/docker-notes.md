@@ -211,6 +211,219 @@ Installing a program
     RUN apt-get -y update
     RUN apt-get -y install nano
     CMD ["/bin/nano", "/tmp/notes"]
+Command:
+    docker build -t example/nano
 ### Basic Dockerfile example 3
 Adding a file
 Start from image create in example 2
+    FROM example/nano
+    ADD note.txt /note.txt
+    CMD "nano" "/note.txt"
+Create a file note.txt...
+Build the image:
+    docker build -t example/note .
+## syntax of a Dockerfile
+### FROM statement
+- Which image to download from repo and start from
+- must be the first command in a Dockerfile
+### MAINTAINER statement
+- allows you to set the Author field of the generated images
+### RUN statement
+- runs the command line (ex: RUN unzip install.zip /opt/installdir)
+  - wait for the command to finish
+  - save the result
+### ADD statement
+- adds:
+  - local files (ADD note.txt /note.txt)
+  - the contents of tar archives
+    - ADD archive.tar.gz /installdir/ (automatically uncompresses tar files)
+  - works with URLs as well (ADD https://.../download/project.zip /installdir/)
+### ENV statement
+- sets environment variables
+- both during the build and when running the result image. Those enviroment variables will still be set
+  - ENV DB_HOST=db_production.example.com
+### ENTRYPOINT and CMD statements
+- ENTRYPOINT specifies the start of the command to run
+  - you can use if your container acts like a command-line program
+- CMD specifies the whole command to run
+**Shell Form and Exec Form**
+- Shell form:
+  - nano note.txt
+- Exec form:
+  - ["/bin/nano", "note.txt"]
+### EXPOSE statement
+- maps a port into the container
+  - EXPOSE 8080 (same thing oh -p 8080:8080)
+### VOLUME statement
+- defines shared volumes
+- define ephemeral volumes
+- VOLUME ["/host/path/" "/container/path/"]
+- VOLUME ["/shared-data"]
+- **Avoid** defining shared folders with your host in Dockerfiles
+### WORKDIR statement
+- sets the directory the container starts in (WORKDIR /install/)
+### USER statement
+- sets which user the container will run as (USER bill)
+# Images build with multi-project Dockerfiles
+- multi-stage builds
+Make a Dockerfile
+    view folder multi-stage
+    docekr run docker build -t google-size .
+Run the image in a container
+    docekr run google-size .
+Check the new file Dockerfile
+Then rebuild and check the size of the images
+# What Docker Does
+- program written in Go
+- Docker is a program which manages several features of the kernel
+  - uses *cgroups* (control groups) to contain processes
+    - group processes together
+    - give them the idea of being contained in thei own world
+  - uses *namespaces* to contain networks
+  - uses *copy-on-write* filesystems to build images
+  - makes scripting distributed systems **easy**
+# Docker Control Socekt
+**Docker is divided into two programs**
+- client
+- server
+  - the server receives commands over a socket
+    - network
+    - *file*
+- Docker uses bridges to create virtual networks inside your host
+    docker run -ti --rm --net=host ubuntu:16.04 bash
+Inside the container:
+- apt-get install
+- apt-get install bridge-utils
+- brctl show
+In another terminal:
+    docker network create new-netork
+In this example i turn off this protection by passing the --net=host option
+## Routing
+How docker moves packets between networks and containers
+- create *firewall* rules to move packets between networks (iptables commanad)
+- NAT
+- check
+  - sudo iptables -n -L -t nat
+    docker run --rm -ti --net=host --privileged=true ubuntu bash
+Then inside the container:
+- apt-get update
+- apt-get install iptables
+- iptables -n -L -t nat
+In another  terminal start a second container
+    docker run -ti --rm -p 8080:8080 ubuntu bash
+Return to the first container and rerun:
+    iptables -n -L -t nat
+You can see the *port forwarding* rule added
+## Namespaces
+- namespaces are a feature in the Linux kernel that allows you to provide complete network isolation to different processes
+**Virtual networking**
+Processes --> virtual network devices --> bridges
+
+These private networks are bridged into a shared network with all the containers
+- Containers get their own copy oh the networking stack
+# Processes and cgroups
+- in Docker, a container starts with an init process, runs commands and runs other processes. When this init process exit that container just vanishes
+## inspect command
+Run a container:
+    docker run -ti --rm --name killme ubuntu bash
+In a new terminal:
+    docker inspect --format '{{.State.Pid}}' killme
+Start a super privileged container with:
+    docker run -ti --rm --privileged=true --pid=host ubuntu bash
+Inside this second container kill the process id of killme container.
+kill *pid*
+# Limit resource on container
+- CPU time
+- memory allocation
+- inherited limitations and quotas
+# Storage
+- hardware storage devices
+  - logical storage devices (partition drives into groups)
+    - Filesystems
+      - FUSE filesustems
+      - network filesystems
+        - on Docker: **COWs** (copy on write)
+## Moving Cows
+- The contents of layers are moved between containers in gzip files
+- Containers are indipendent of the storage engine
+**Any container can be loaded anywhere**
+# Volumes and Bind mounting
+- use the Linux VFS (Virtual File System)
+You can:
+- mount devices on the VFS
+- mount directories on the VFS
+- **getting hte mount order correct**
+- always mounts the host's filesystem over the guest
+# Docker Registry
+- is a program
+- stores:
+  - layers
+  - images
+  - tag
+  - meta data around the images
+  - listen on port 5000 (usually)
+  - maintains an index and searches tags
+## Docker registry programs
+- the official Python Docker Registry
+- Nexus
+## Running the Docker registry in a docker container
+In command prompt:
+    docker run -d -p 10000:5000 --restart=always --name registry registry:2
+Now:
+    docker tag ubuntu:14.04 localhost:10000/mylocal/local-ubuntu:99
+    docker push localhost:10000/mylocal/local-ubuntu:99
+**you must setup authentication and security on this registry before expose it to any network**
+## Saving and Loading containers
+- docker save
+- docker load
+Save most important images into an archive
+    docker save -o my-images.tar.gz debian:sid busybox ubuntu:14.04
+Remove docker images
+    docker rmi debian:sid busybox ubuntu:14.04
+Load the images archive:
+    docker load -i my-images.tar.gz
+Usefull for:
+- migrating between storage types
+- shipping images on disks
+# Orchestration systems for Docker
+Orchestration systems:
+- start your containers
+- keep them running
+- restart them if they fail
+- allow containers to find each other
+- resource allocation
+## Many alternatives
+- Docker compose
+  - single machine coordination is the de facto standard
+    - designed for testing
+    - development
+    - staging
+    - not for things that scale dynamically
+  - For lerger systems
+    - Kubernetes
+      - containers which tun programs
+      - Pods -> group containers that are intended to be run together
+      - Services make pods available to others
+      - Powerfull system of labels for describing every aspect of your system
+      - very flexible system of overlay networking
+      - runs equally well on your host or a cloud provider
+Get started http://kubernetes.io
+Amazon EC2 Container Service (ECS)
+AWS Fargate from Amazon (more automated version of AWS ECS)
+Amazon Elastik Kubernetes Service (EKS)
+Docker Swarm
+Google offers its Kubernetes engine
+Microsoft offers the Azure Kubernetes Service (AKS)
+
+  - 
+- 
+
+
+
+
+
+ 
+
+
+
+

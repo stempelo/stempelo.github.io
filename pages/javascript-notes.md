@@ -1,0 +1,3 @@
+- async and defer in Javascript loading
+- <script type="module" src="...
+##  JavaScript is a prototype based object oriented programming language

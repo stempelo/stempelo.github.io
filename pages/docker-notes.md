@@ -3,22 +3,27 @@ title:  'Docker notes'
 permalink: '/pages/Docker.html'
 ---
 # CLI snippets
-
+```
 docker info
-
+```
+```
 docker images
-
+```
+```
 docker run -ti ubuntu:latest bash
-
+```
 In another terminal
-    docker ps
-
+```
+docker ps
+```
 All container, running and stopped
+```
 docker ps -a
-
-last container stopped
+```
+Last container stopped
+```
 docker ps -l
-
+```
 ## The Docker flow
 ### Images to Containers
 docker run
